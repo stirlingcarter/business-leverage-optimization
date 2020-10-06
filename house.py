@@ -1,18 +1,31 @@
+import uuid
+u = str(uuid.uuid1()).split("-")[0]
+print(u)
 
 MORTGAGE_LENGTHS = 30
 APR = .03
 APR_FACTOR = 1.93
-monthly = 337.28
 HOME_VALUE_TARGET = 100000
 DOWN_PAYMENT_PERCENTAGE = .2
 RI_YRLY_APPR = .04
 ETF_YRLY_DRAW = .04
 MONTHS_IN_YEAR = 12
 MAX_HOUSES = 10
+ADJUST_RENT_TO_MARKET = "ON_TURNOVER" #ON_TURNOVER or PERIODICLY
+RENT_ADJUST_PERIOD_MOS = -1
+AVG_TURNOVER_MOS = 50
+RENT_AS_PERCENTAGE_OF_VALUE = .008
+CAPEX_AS_PER_VALUE = .15
+
+
+
 class House:
 
     def __init__(self, cost, down):
+    
         self.initial_value = cost
+        self.rent = self.initial_value * RENT_AS_PERCENTAGE_OF_VALUE
+        self.age_months = 0
         self.appr_value = cost
         self.equity = down
         self.p_owed = cost - down
@@ -22,18 +35,27 @@ class House:
         
     #a monthly step
     def step(self):
+    
+        #age
+        self.age_months += 1
+        #adjust rent
+        if  ADJUST_RENT_TO_MARKET == "ON_TURNOVER" and self.age_months % AVG_TURNOVER_MOS == 0:
+            self.rent = self.appr_value * RENT_AS_PERCENTAGE_OF_VALUE
+        elif ADJUST_RENT_TO_MARKET == "PERIODICLY" and self.age_months % RENT_ADJUST_PERIOD_MOS == 0:
+            self.rent = self.appr_value * RENT_AS_PERCENTAGE_OF_VALUE
+            
+        #calculate and adjust p and i
         if self.equity < self.initial_value:
             interest = APR/MONTHS_IN_YEAR*self.p_owed
             principal = self.MONTHLY - interest
             self.p_owed -= principal
             self.equity += principal
             self.i_owed -= interest
+        #acct for apr
         self.appr_value *= (1 + (RI_YRLY_APPR/MONTHS_IN_YEAR))#.04 is yrly RI ^
         
     def get_monthly_income(self):
-        NOI = self.appr_value/15
-        NOI *= .85 #CAPEX
-        NOI *= 1/MONTHS_IN_YEAR
+        NOI = self.rent - self.rent * CAPEX_AS_PER_VALUE
         if self.equity < self.initial_value:
             NOI -= self.MONTHLY
         return NOI
@@ -47,6 +69,7 @@ class House:
         print("\n")
 
     def refi(self):
+        self.initial_value = self.appr_value
         down = self.appr_value * DOWN_PAYMENT_PERCENTAGE
         cash_loan_out = self.appr_value - down
         net_cash_out = cash_loan_out + self.equity - down
@@ -71,11 +94,9 @@ class House:
         else:
             return self.p_owed
             
-            
 cash = 25000
 monthly_income = 0
 houses = []
-
 months = 0
 while monthly_income < 10000 or months < 360:
     months += 1
@@ -119,4 +140,4 @@ while monthly_income < 10000 or months < 360:
     
     
 
-
+print(u)
